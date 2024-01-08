@@ -30,7 +30,7 @@ router.post(
 
       res.setHeader(
         "x-app-token",
-        getNewToken({ id, role, role_version, permissions })
+        getNewToken({ id, username, role, role_version, permissions })
       );
 
       res.end();

@@ -2,11 +2,13 @@ import express, { NextFunction, Request, Response } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import { validatePermissions } from "./validate";
+import { setBlackList, setRoleVersions, validatePermissions } from "./validate";
 
 import adminRouter from "./routes/admin";
 import loginRouter from "./routes/login";
+import rolesRouter from "./routes/roles";
 import usersRouter from "./routes/users";
+import itemsRouter from "./routes/items";
 
 const PORT = process.env.PORT || 3000;
 
@@ -17,7 +19,9 @@ app.use(express.json());
 
 app.use("/admin", adminRouter);
 app.use("/login", loginRouter);
+app.use("/roles", validatePermissions, rolesRouter);
 app.use("/users", validatePermissions, usersRouter);
+app.use("/items", validatePermissions, itemsRouter);
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -38,6 +42,24 @@ io.on("connection", (socket) => {
   // ...
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`Listening on ${PORT} ...`);
-});
+(async () => {
+  try {
+    await setBlackList();
+    await setRoleVersions();
+    httpServer.listen(PORT, () => {
+      console.log(`Listening on ${PORT} ...`);
+    });
+  } catch (error) {
+    console.log(error);
+  }
+})();
+
+// import { createClient } from 'redis';
+
+// const client = createClient({
+//     password: 'F2XAtLSXGjVts5BxQtbqGFYvvX4wH3SI',
+//     socket: {
+//         host: 'redis-16369.c323.us-east-1-2.ec2.cloud.redislabs.com',
+//         port: 16369
+//     }
+// });

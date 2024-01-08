@@ -6,6 +6,7 @@ const router = Router();
 
 router.get("/init", async (req, res, next) => {
   try {
+    await sql`DROP TABLE IF EXISTS items`;
     await sql`DROP TABLE IF EXISTS users`;
     await sql`DROP TABLE IF EXISTS roles`;
 
@@ -23,6 +24,12 @@ router.get("/init", async (req, res, next) => {
       password VARCHAR (90) NOT NULL,
       x INT NOT NULL DEFAULT(0),
       CONSTRAINT user_role FOREIGN KEY(role_id) REFERENCES roles(id)
+    )`;
+
+    await sql`CREATE TABLE items (
+      id serial PRIMARY KEY,
+      name VARCHAR (10) NOT NULL,
+      count INT NOT NULL DEFAULT(0)
     )`;
 
     const roles = [

@@ -4,15 +4,87 @@
     "label": "Get users"
   },
   {
+    "name": "get-users-blacklisted",
+    "label": "Get blacklisted users"
+  },
+  {
+    "name": "get-users-deleted",
+    "label": "Get deleted users"
+  },
+  {
     "name": "get-users--",
     "label": "Get a user"
   },
   {
-    "name": "post-users",
-    "label": "Edit user"
+    "name": "put-users---password",
+    "label": "Change a user password"
   },
   {
-    "name": "put-users---password",
-    "label": "Change password"
+    "name": "put-users---role",
+    "label": "Change a user role"
+  },
+  {
+    "name": "put-users---blacklist",
+    "label": "Add a user to the blacklist"
+  },
+  {
+    "name": "put-users---unblacklist",
+    "label": "Remove a user from the blacklist"
+  },
+  {
+    "name": "put-users---undelete",
+    "label": "Undelete a user"
+  },
+  {
+    "name": "post-users",
+    "label": "Add a user"
+  },
+  {
+    "name": "delete-users--",
+    "label": "Delete a user"
+  },
+  {
+    "name": "get-roles",
+    "label": "Get roles"
+  },
+  {
+    "name": "get-roles--",
+    "label": "Get a role"
+  },
+  {
+    "name": "put-roles--",
+    "label": "Edit a role"
+  },
+  {
+    "name": "post-roles",
+    "label": "Add a role"
+  },
+  {
+    "name": "delete-roles--",
+    "label": "Delete a role"
+  },
+  {
+    "name": "get-items",
+    "label": "Get items"
+  },
+  {
+    "name": "get-items--",
+    "label": "Get an item"
+  },
+  {
+    "name": "put-items---name",
+    "label": "Edit an item name"
+  },
+  {
+    "name": "put-items---count",
+    "label": "Edit an item count"
+  },
+  {
+    "name": "post-items",
+    "label": "Add an item"
+  },
+  {
+    "name": "delete-items--",
+    "label": "Delete an item"
   }
 ]

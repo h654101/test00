@@ -1,42 +1,27 @@
 import dayjs from "dayjs";
 import { CronJob } from "cron";
-import { verify } from "jsonwebtoken";
+import { verify, decode } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { Rule } from "../@types.js";
 import rules from "./rules.json";
 import { getNewToken } from "../auth";
 import sql from "../db";
 
-let blackList: number[] | undefined;
-let roleVersions: Record<string, number> | undefined;
-
-if (!roleVersions) {
-  sql`SELECT name, version FROM roles`
-    .then((rows) => {
-      const obj: Record<string, number> = {};
-      rows.forEach((r) => {
-        obj[r.name] = r.version;
-      });
-      roleVersions = obj;
-      // roleVersions["admin"] += 1;
-      console.log("roleVersions has been set");
-    })
-    .catch((err) => console.log(err));
-}
-
-if (!blackList) {
-  sql`SELECT id FROM users WHERE x = 2`
-    .then((rows) => {
-      blackList = rows.map((r) => r.id);
-      console.log("blackList has been set");
-    })
-    .catch((err) => console.log(err));
-}
+const blackList: number[] = [];
+const roleVersions: Record<string, number> = {};
 
 CronJob.from({
   cronTime: "00 00 01 * * *",
-  onTick: function () {
-    console.log(dayjs().format("hh:mm:ss"));
+  onTick: async function () {
+    const users = blackList.map((id) => [id]);
+
+    await sql`update users set x = 1
+    from (values ${sql(users)}) as update_data (id)
+    where users.id = (update_data.id)::int`;
+
+    blackList.length = 0;
+
+    console.log("BlackList did reset at", dayjs().format("hh:mm:ss"));
   },
   start: true,
 });
@@ -51,12 +36,24 @@ export const validatePermissions = async (
 
     if (!token) return next(new Error("Authorization missing"));
 
-    let { id, role, role_version, permissions } = verify(
-      token,
-      "app-secret-key"
-    ) as any;
+    let payload: Record<string, any> | undefined;
 
-    if (blackList!.includes(id)) {
+    let isRefreshNeeded = false;
+
+    try {
+      payload = verify(token, "app-secret-key") as Record<string, any>;
+    } catch (error: any) {
+      if (error.message === "jwt expired") {
+        isRefreshNeeded = true;
+        payload = decode(token) as Record<string, any>;
+      } else {
+        return next(error.message || error);
+      }
+    }
+
+    let { id, username, role, role_version, permissions } = payload!;
+
+    if (blackList.includes(id)) {
       return next(new Error("Forbidden"));
     }
 
@@ -71,6 +68,7 @@ export const validatePermissions = async (
     if (isRolePermissionUpdated) {
       const rows =
         await sql`SELECT permissions from roles WHERE name = ${role}`;
+      if (rows.length == 0) return next(new Error("Permission not found"));
       permissions = rows[0]["permissions"];
     }
 
@@ -78,14 +76,25 @@ export const validatePermissions = async (
       .replace(/\/|[0-9]/g, "-")
       .toLowerCase();
 
-    if (!permissions.includes(permission0)) {
+    if (!permissions.includes(permission0) && id !== 1) {
       return next(new Error("Permission missing"));
     }
 
-    if (isRolePermissionUpdated) {
+    if (isRefreshNeeded) {
+      const rows = await sql`SELECT x from users WHERE id = ${id} AND x = 0`;
+      if (rows.length == 0) return next(new Error("User not found"));
+    }
+
+    if (isRefreshNeeded || isRolePermissionUpdated) {
       res.setHeader(
         "x-app-token",
-        getNewToken({ id, role, role_version: roleVersion, permissions })
+        getNewToken({
+          id,
+          username,
+          role,
+          role_version: roleVersion,
+          permissions,
+        })
       );
     }
 
@@ -141,15 +150,6 @@ export const validateBody = (arr: string[]) => {
         return next(new Error(`Wrong ${v} Type [${typeof val}]`));
       }
 
-      if (type === "string") {
-        if (val.length < rule.min) {
-          return next(new Error(`Short ${v} [${val.length}]`));
-        }
-        if (val.length > rule.max) {
-          return next(new Error(`Too long ${v} [${val.length}]`));
-        }
-      }
-
       if (type === "number") {
         if (val < rule.min) {
           return next(new Error(`Small ${v} [${val}]`));
@@ -157,9 +157,43 @@ export const validateBody = (arr: string[]) => {
         if (val > rule.max) {
           return next(new Error(`Too long ${v} [${val}]`));
         }
+      } else {
+        if (val.length < rule.min) {
+          return next(new Error(`Short ${v} [${val.length}]`));
+        }
+        if (val.length > rule.max) {
+          return next(new Error(`Too long ${v} [${val.length}]`));
+        }
       }
     }
 
     next();
   };
+};
+
+export const editRoleVersion = (name: string, version: number) => {
+  roleVersions[name] = version;
+};
+
+export const setRoleVersions = async () => {
+  const rows = await sql`SELECT name, version FROM roles`;
+  rows.forEach((r) => {
+    roleVersions[r.name] = r.version;
+  });
+  console.log("roleVersions ready");
+};
+
+export const addToBlackList = (id: number) => {
+  blackList.push(id);
+};
+
+export const removeFromBlackList = (id: number) => {
+  const i = blackList.indexOf(id);
+  blackList.splice(i, 1);
+};
+
+export const setBlackList = async () => {
+  const rows = await sql`SELECT id FROM users WHERE x = 2`;
+  blackList.push(...rows.map((r) => r.id));
+  console.log("blackList ready");
 };
