@@ -1,0 +1,9 @@
+{
+    "username": { "type": "string", "min": 4, "max": 12 },
+    "password": { "type": "string", "min": 4, "max": 12 },
+    "role_id": { "type": "number", "min": 1, "max": 99 },
+    "name": { "type": "string", "min": 3, "max": 12 },
+    "version": { "type": "number", "min": 1, "max": 99 },
+    "count": { "type": "number", "min": 0, "max": 99 },
+    "permissions": { "type": "object", "min": 1, "max": 99 }
+}

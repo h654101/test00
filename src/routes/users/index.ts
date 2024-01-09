@@ -2,8 +2,11 @@ import { Router } from "express";
 import {
   validateBody,
   validateParams,
-  addToBlackList,
-  removeFromBlackList,
+  setBlackList,
+  getLoginTries,
+  setLoginTries,
+  getRefreshTries,
+  setRefreshTries,
 } from "../../validate";
 import { hashSync } from "bcrypt";
 import sql from "../../db";
@@ -21,6 +24,42 @@ router.get("/", async (req, res, next) => {
     WHERE x = 0`;
 
     res.json(rows);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/logintries", async (req, res, next) => {
+  try {
+    res.json(getLoginTries());
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/logintries/:id", validateParams, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    setLoginTries(-id);
+    res.json({ id });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/refreshtries", async (req, res, next) => {
+  try {
+    res.json(getRefreshTries());
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/refreshtries/:id", validateParams, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    setRefreshTries(-id);
+    res.json({ id });
   } catch (error) {
     next(error);
   }
@@ -130,7 +169,7 @@ router.put("/:id/blacklist", validateParams, async (req, res, next) => {
     const id0 = parseInt(id);
     if (isNaN(id0)) return next(new Error("Id param is NaN"));
 
-    addToBlackList(id0);
+    setBlackList(id0);
 
     res.json(rows[0]);
   } catch (error) {
@@ -151,7 +190,7 @@ router.put("/:id/unblacklist", validateParams, async (req, res, next) => {
 
     const id0 = parseInt(id);
     if (isNaN(id0)) return next(new Error("Id param is NaN"));
-    removeFromBlackList(id0);
+    setBlackList(-id0);
 
     res.json(rows[0]);
   } catch (error) {

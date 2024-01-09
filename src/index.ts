@@ -2,7 +2,11 @@ import express, { NextFunction, Request, Response } from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
-import { setBlackList, setRoleVersions, validatePermissions } from "./validate";
+import {
+  initBlackList,
+  initRoleVersions,
+  validatePermissions,
+} from "./validate";
 
 import adminRouter from "./routes/admin";
 import loginRouter from "./routes/login";
@@ -44,8 +48,8 @@ io.on("connection", (socket) => {
 
 (async () => {
   try {
-    await setBlackList();
-    await setRoleVersions();
+    await initBlackList();
+    await initRoleVersions();
     httpServer.listen(PORT, () => {
       console.log(`Listening on ${PORT} ...`);
     });
@@ -53,13 +57,3 @@ io.on("connection", (socket) => {
     console.log(error);
   }
 })();
-
-// import { createClient } from 'redis';
-
-// const client = createClient({
-//     password: 'F2XAtLSXGjVts5BxQtbqGFYvvX4wH3SI',
-//     socket: {
-//         host: 'redis-16369.c323.us-east-1-2.ec2.cloud.redislabs.com',
-//         port: 16369
-//     }
-// });

@@ -6,9 +6,12 @@ import { Rule } from "../@types.js";
 import rules from "./rules.json";
 import { getNewToken } from "../auth";
 import sql from "../db";
+import { write } from "../log";
 
 const blackList: number[] = [];
 const roleVersions: Record<string, number> = {};
+const loginTries: Record<string, number> = {};
+const refreshTries: Record<string, number> = {};
 
 CronJob.from({
   cronTime: "00 00 01 * * *",
@@ -20,8 +23,10 @@ CronJob.from({
     where users.id = (update_data.id)::int`;
 
     blackList.length = 0;
+    Object.keys(loginTries).forEach((k) => delete loginTries[k]);
+    Object.keys(refreshTries).forEach((k) => delete refreshTries[k]);
 
-    console.log("BlackList did reset at", dayjs().format("hh:mm:ss"));
+    write("lists reseted");
   },
   start: true,
 });
@@ -86,6 +91,8 @@ export const validatePermissions = async (
     }
 
     if (isRefreshNeeded || isRolePermissionUpdated) {
+      const tries = getRefreshTries(id);
+      if (tries >= 3) return next(new Error("too mant tries"));
       res.setHeader(
         "x-app-token",
         getNewToken({
@@ -96,6 +103,9 @@ export const validatePermissions = async (
           permissions,
         })
       );
+      setRefreshTries(id);
+    } else {
+      setRefreshTries(-id);
     }
 
     next();
@@ -171,29 +181,50 @@ export const validateBody = (arr: string[]) => {
   };
 };
 
-export const editRoleVersion = (name: string, version: number) => {
+export const getLoginTries = (id?: number) => getTries(id, loginTries);
+export const setLoginTries = (id: number) => setTries(id, loginTries);
+export const getRefreshTries = (id?: number) => getTries(id, refreshTries);
+export const setRefreshTries = (id: number) => setTries(id, refreshTries);
+
+export const setRoleVersion = (name: string, version: number) => {
   roleVersions[name] = version;
 };
+export const setBlackList = (id: number) => {
+  if (id > 0) {
+    blackList.push(id);
+  } else {
+    const i = blackList.indexOf(+id);
+    blackList.splice(i, 1);
+  }
+};
 
-export const setRoleVersions = async () => {
+export const initRoleVersions = async () => {
   const rows = await sql`SELECT name, version FROM roles`;
   rows.forEach((r) => {
     roleVersions[r.name] = r.version;
   });
   console.log("roleVersions ready");
 };
-
-export const addToBlackList = (id: number) => {
-  blackList.push(id);
-};
-
-export const removeFromBlackList = (id: number) => {
-  const i = blackList.indexOf(id);
-  blackList.splice(i, 1);
-};
-
-export const setBlackList = async () => {
+export const initBlackList = async () => {
   const rows = await sql`SELECT id FROM users WHERE x = 2`;
   blackList.push(...rows.map((r) => r.id));
   console.log("blackList ready");
 };
+
+function getTries(id: number | undefined, _ref: any) {
+  if (id) return _ref[`_${id}`] || 0;
+  return Object.keys(_ref);
+}
+function setTries(id: number, _ref: any) {
+  const _id = `_${Math.abs(id)}`;
+  if (_id === "_1") {
+    write("failed try by admin");
+    return;
+  }
+  if (!_ref[_id]) _ref[_id] = 0;
+  if (id > 0) {
+    _ref[_id]++;
+  } else {
+    delete _ref[_id];
+  }
+}

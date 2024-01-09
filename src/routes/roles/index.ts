@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { validateBody, validateParams, editRoleVersion } from "../../validate";
+import { validateBody, validateParams, setRoleVersion } from "../../validate";
 import permissions from "./permissions.json";
 import sql from "../../db";
 
@@ -52,7 +52,7 @@ router.put(
 
       const { name, version } = rows[0];
 
-      editRoleVersion(name, version);
+      setRoleVersion(name, version);
 
       res.json({ id });
     } catch (error) {
