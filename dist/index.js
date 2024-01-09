@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const http_1 = require("http");
-const socket_io_1 = require("socket.io");
+// const socket_io_1 = require("socket.io");
 const cors_1 = __importDefault(require("cors"));
 const validate_1 = require("./validate");
 const admin_1 = __importDefault(require("./routes/admin"));
@@ -32,9 +32,9 @@ app.use("/roles", validate_1.validatePermissions, roles_1.default);
 app.use("/users", validate_1.validatePermissions, users_1.default);
 app.use("/items", validate_1.validatePermissions, items_1.default);
 const httpServer = (0, http_1.createServer)(app);
-const io = new socket_io_1.Server(httpServer, {
-/* options */
-});
+// const io = new socket_io_1.Server(httpServer, {
+// /* options */
+// });
 app.get("/hello", (req, res) => {
     const permission = (req.method + req.url).replace(/\//g, "-").toLowerCase();
     res.send(permission);
@@ -43,9 +43,9 @@ app.use((err, req, res, next) => {
     console.log(err);
     res.status(400).send(err.message || err);
 });
-io.on("connection", (socket) => {
-    // ...
-});
+// io.on("connection", (socket) => {
+//     // ...
+// });
 (() => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, validate_1.initBlackList)();
